@@ -9,34 +9,52 @@ import { ActorDialog } from "./bcdice.js";
 
 const replacementRegex = /\{\s*([^\}]+)\s*\}/g;
 
-export default class BCDialog extends FormApplication {
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+export default class BCDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor() {
     super({});
     this.dialog = null;
   }
 
-  static get defaultOptions() {
-    return {
-      ...super.defaultOptions,
-      width: 400,
-      height: "auto",
-      resizable: true,
+  static DEFAULT_OPTIONS = {
+    id: "BCDialog",
+    form: {
+      // handler: TemplateApplicaiton.#OnSubmit,
       closeOnSubmit: false,
       submitOnClose: true,
       submitOnChange: true,
-      scrollY: ["div.bcdice-macro-page"],
+    },
+    position: {
+      width: 400,
+      height: "auto",
+    },
+    resizable: true,
+    scrollY: ["div.bcdice-macro-page"],
+    tabs: [
+      {
+        navSelector: ".bcdice-tabs",
+        contentSelector: ".bcdice-macro-page",
+        initial: "macro-0",
+      },
+    ],
+    window: {
       title: "BCDice Roller",
+      contentClasses: ["standard-form"]
+    },
+    actions: {
+      roll: BCDialog._onRollButton,
+    },
+  };
+
+  static PARTS = {
+    form: {
       template: "modules/fvtt-bcdice-addon/templates/dialog.html",
-      tabs: [
-        {
-          navSelector: ".bcdice-tabs",
-          contentSelector: ".bcdice-macro-page",
-          initial: "macro-0",
-        },
-      ],
-      id: "BCDialog",
-    };
-  }
+    },
+    footer: {
+      template: "templates/generic/form-footer.hbs",
+    },
+  };
 
   async close(options = {}) {
     ActorDialog.setActor(false);
@@ -71,7 +89,7 @@ export default class BCDialog extends FormApplication {
     return buttons;
   }
 
-  async getData() {
+  async _prepareContext(options) {
     await Promise.race([
       new Promise((resolve) => {
         Hooks.once("controlToken", resolve);
@@ -88,11 +106,16 @@ export default class BCDialog extends FormApplication {
       data: macros,
       type: entity.constructor.documentName,
       entity: entity,
+      buttons: [
+        { type: "submit", label: "fvtt-bcdice.rollButton" }
+      ]
     };
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = $(this.element)
+
     const system =
       game.users.get(game.userId).getFlag("fvtt-bcdice-addon", "sys-id") ??
       game.settings.get("fvtt-bcdice-addon", "game-system");
@@ -196,17 +219,16 @@ export default class BCDialog extends FormApplication {
     });
     */
 
-    new Dialog(
-      {
-        title: `BCDice Help (${this.getSystem()})`,
-        content: `<h1><em>${data.name}</em></h1><p>${helpMessage}</p>`,
-        buttons: {},
-        default: "",
-      },
-      {
+    new foundry.applications.api.DialogV2( {
+      window: { title: `BCDice Help (${this.getSystem()})`},
+      content: `<h1><em>${data.name}</em></h1><p>${helpMessage}</p>`,
+      buttons: [{}],
+      default: "",
+      position: {
         width: 700,
         height: 600,
-        resizable: true,
+      },
+      resizable: true,
       }
     ).render(true);
   }

@@ -102,15 +102,16 @@ Hooks.on("chatMessage", (chat, parameters, messageData) => {
   }
 });
 
-Hooks.on("renderSceneControls", async function () {
-  if (!$("#bc-dice-control").length) {
-    $("#controls > .main-controls").append(
-      '<li class="scene-control" id="bc-dice-control" title="BC Dice [Shift] + [Ctrl] + [B]"><i class="fas fa-dice"></i></li>'
-    );
-    $("#bc-dice-control").click(() => {
+Hooks.on("getSceneControlButtons", function (controls) {
+  controls["tokens"].tools["bc-dice-control"] = {
+    name: "bc-dice-control",
+    title: "BC Dice [Shift] + [Ctrl] + [B]",
+    icon: "fas fa-dice",
+    onChange: () => {
       showRoller(roller);
-    });
-  }
+    },
+    button: true,
+  };
 });
 
 // Add ActorSheet button
